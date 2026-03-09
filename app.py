@@ -19,27 +19,29 @@ def scan_website():
 
     try:
         start_time = time.time()
-        # Added headers to pretend we are a real browser, helps prevent getting blocked
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         response = requests.get(url, headers=headers, timeout=10)
         load_time = round(time.time() - start_time, 2)
         
         html_content = response.text.lower()
         
-        # UPGRADED DATA DICTIONARY
         result = {
             "url": url,
             "status_code": response.status_code,
             "load_time_seconds": load_time,
-            "ssl_secure": url.startswith('https'),
-            "seo_present": "<title>" in html_content and "meta name=\"description\"" in html_content,
-            "mobile_ready": "meta name=\"viewport\"" in html_content,
             
-            # --- NEW VARIABLES ---
-            "has_analytics": "google-analytics" in html_content or "gtag(" in html_content,
+            # 1. The Baseline Vitals
+            "ssl_secure": url.startswith('https'),
+            "mobile_ready": "meta name=\"viewport\"" in html_content,
+            "seo_present": "<title>" in html_content and "meta name=\"description\"" in html_content,
             "has_socials": "linkedin.com" in html_content or "twitter.com" in html_content or "facebook.com" in html_content,
+            "has_contact_email": "mailto:" in html_content,
+            
+            # 2. The High-Ticket Pitches
+            "has_business_intel": "google-analytics" in html_content or "gtm.js" in html_content or "fbevents.js" in html_content,
             "is_wordpress": "wp-content" in html_content or "wp-includes" in html_content,
-            "has_contact_email": "mailto:" in html_content
+            "has_sales_automation": "tawk.to" in html_content or "intercom" in html_content or "zendesk" in html_content or "hubspot" in html_content or "salesforce" in html_content,
+            "has_mobile_apps": "play.google.com/store/apps" in html_content or "apps.apple.com" in html_content
         }
         return jsonify(result)
         
