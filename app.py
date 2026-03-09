@@ -4,7 +4,6 @@ import requests
 import time
 
 app = Flask(__name__)
-# This allows your frontend website to talk to this backend
 CORS(app)
 
 @app.route('/scan', methods=['POST'])
@@ -15,26 +14,32 @@ def scan_website():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
         
-    # Ensure URL is formatted correctly
     if not url.startswith('http'):
         url = 'https://' + url
 
     try:
-        # Start the timer and visit the website
         start_time = time.time()
-        response = requests.get(url, timeout=10)
+        # Added headers to pretend we are a real browser, helps prevent getting blocked
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        response = requests.get(url, headers=headers, timeout=10)
         load_time = round(time.time() - start_time, 2)
         
-        # Analyze the website's code for our MBA project variables
         html_content = response.text.lower()
         
+        # UPGRADED DATA DICTIONARY
         result = {
             "url": url,
             "status_code": response.status_code,
             "load_time_seconds": load_time,
             "ssl_secure": url.startswith('https'),
             "seo_present": "<title>" in html_content and "meta name=\"description\"" in html_content,
-            "mobile_ready": "meta name=\"viewport\"" in html_content
+            "mobile_ready": "meta name=\"viewport\"" in html_content,
+            
+            # --- NEW VARIABLES ---
+            "has_analytics": "google-analytics" in html_content or "gtag(" in html_content,
+            "has_socials": "linkedin.com" in html_content or "twitter.com" in html_content or "facebook.com" in html_content,
+            "is_wordpress": "wp-content" in html_content or "wp-includes" in html_content,
+            "has_contact_email": "mailto:" in html_content
         }
         return jsonify(result)
         
