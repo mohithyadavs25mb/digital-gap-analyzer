@@ -5,61 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Gap Analyzer | Brightnodes</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 50px 20px;
-            margin: 0;
-        }
-        .container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            max-width: 600px;
-            width: 100%;
-            text-align: center;
-        }
-        h1 { 
-            color: #0056b3; 
-            margin-bottom: 5px; 
-        }
-        p.subtitle { 
-            color: #666; 
-            margin-bottom: 30px; 
-            font-size: 14px;
-        }
-        input[type="url"] {
-            width: 85%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
-        button {
-            background-color: #0056b3;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-        button:hover { 
-            background-color: #004494; 
-        }
-        .footer {
-            margin-top: 40px;
-            font-size: 12px;
-            color: #aaa;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; align-items: center; padding: 50px 20px; margin: 0; }
+        .container { background-color: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
+        h1 { color: #0056b3; margin-bottom: 5px; }
+        p.subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+        input[type="url"] { width: 85%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; margin-bottom: 20px; }
+        button { background-color: #0056b3; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background-color: #004494; }
+        
+        /* New styles for the results box */
+        #resultsBox { margin-top: 30px; text-align: left; background: #f8fbff; border: 1px solid #cce0ff; padding: 20px; border-radius: 8px; display: none; }
+        .result-item { margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .pass { color: #28a745; font-weight: bold; }
+        .fail { color: #dc3545; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -68,15 +26,65 @@
         <h1>Digital Gap Analyzer</h1>
         <p class="subtitle">B2B Market Penetration Tool | Brightnodes IT Services</p>
         
-        <input type="url" id="websiteUrl" placeholder="Enter company website (e.g., https://example.com)" required>
+        <input type="url" id="websiteUrl" placeholder="Enter company website (e.g., example.com)" required>
         <br>
-        <button onclick="alert('The frontend is working! Next, we connect the backend brain.')">Scan Website</button>
+        <button onclick="scanWebsite()" id="scanBtn">Scan Website</button>
 
+        <div id="resultsBox">
+            <h3 style="margin-top:0; color:#0056b3;">Analysis Results:</h3>
+            <div class="result-item">⏱️ Load Time: <span id="res-time"></span></div>
+            <div class="result-item">🔒 SSL Secure: <span id="res-ssl"></span></div>
+            <div class="result-item">🔍 SEO Tags Present: <span id="res-seo"></span></div>
+            <div class="result-item">📱 Mobile Ready: <span id="res-mobile"></span></div>
+        </div>
     </div>
 
-    <div class="footer">
-        Strategic Business Tool developed for emerging markets.
-    </div>
+    <script>
+        async function scanWebsite() {
+            const urlInput = document.getElementById('websiteUrl').value;
+            const btn = document.getElementById('scanBtn');
+            const resultsBox = document.getElementById('resultsBox');
+            
+            if(!urlInput) {
+                alert("Please enter a website URL to scan.");
+                return;
+            }
+            
+            // Change button text while loading
+            btn.innerText = "Scanning... (Please wait)";
+            btn.style.backgroundColor = "#666";
+            resultsBox.style.display = "none";
 
+            try {
+                // Here is where the Face talks to the Brain!
+                const response = await fetch("https://digital-gap-analyzer.onrender.com/scan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: urlInput })
+                });
+                
+                const data = await response.json();
+                
+                if(data.error) {
+                    alert("Scan Failed: " + data.error);
+                } else {
+                    // Fill the results box with our MBA data
+                    document.getElementById('res-time').innerHTML = data.load_time_seconds + " seconds";
+                    document.getElementById('res-ssl').innerHTML = data.ssl_secure ? "<span class='pass'>Yes (Secure)</span>" : "<span class='fail'>No (Vulnerable)</span>";
+                    document.getElementById('res-seo').innerHTML = data.seo_present ? "<span class='pass'>Yes</span>" : "<span class='fail'>No (Missing)</span>";
+                    document.getElementById('res-mobile').innerHTML = data.mobile_ready ? "<span class='pass'>Yes</span>" : "<span class='fail'>No (Outdated)</span>";
+                    
+                    // Show the results box
+                    resultsBox.style.display = "block";
+                }
+            } catch(error) {
+                alert("Could not connect to the backend server. It might be spinning up, try again in 30 seconds!");
+            }
+            
+            // Reset button
+            btn.innerText = "Scan Website";
+            btn.style.backgroundColor = "#0056b3";
+        }
+    </script>
 </body>
 </html>
