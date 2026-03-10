@@ -5,17 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Gap Analyzer | Brightnodes</title>
     <style>
-        /* Modern Corporate SaaS Theme */
         body { font-family: 'Inter', -apple-system, sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 50px 20px; display: flex; justify-content: center; }
         .container { background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); max-width: 850px; width: 100%; position: relative; overflow: hidden; }
         h1 { color: #0f172a; font-size: 28px; margin-bottom: 8px; font-weight: 700; }
         p.subtitle { color: #64748b; margin-top: 0; margin-bottom: 30px; font-size: 15px; }
         
         .search-box { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-        textarea { 
-            width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; color: #0f172a; 
-            resize: vertical; font-family: monospace; transition: border-color 0.2s; 
-        }
+        textarea { width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 15px; color: #0f172a; resize: vertical; font-family: monospace; transition: border-color 0.2s; }
         textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         .input-hint { font-size: 12px; color: #64748b; margin-top: -8px; }
 
@@ -26,7 +22,7 @@
         .btn-export { background-color: #10b981; padding: 10px 16px; font-size: 14px; display: flex; align-items: center; gap: 8px; margin-left: auto;}
         .btn-export:hover { background-color: #059669; }
 
-        /* Motion Graphics & Loading Overlay */
+        /* Motion Graphics */
         #loading-overlay { display: none; background: rgba(255,255,255,0.95); position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; }
         .spinner { width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -36,19 +32,15 @@
 
         #results-section { display: none; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 30px; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .company-title { font-size: 22px; color: #0f172a; margin: 0; font-weight: 700; color: #2563eb; text-transform: uppercase;}
+        .company-title { font-size: 22px; margin: 0; font-weight: 700; color: #2563eb; text-transform: uppercase;}
         
-        /* Data Grid & Tooltips */
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .data-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Tooltip Magic */
         .has-tooltip { position: relative; cursor: help; border-bottom: 1px dashed #94a3b8; font-weight: 500; color: #475569; font-size: 15px; padding-bottom: 2px;}
         .has-tooltip:hover::after {
-            content: attr(data-tip); position: absolute; bottom: 130%; left: 0;
-            background: #1e293b; color: #f8fafc; padding: 10px 14px; border-radius: 6px;
-            font-size: 13px; font-weight: 400; width: 220px; z-index: 10;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); pointer-events: none; line-height: 1.4;
+            content: attr(data-tip); position: absolute; bottom: 130%; left: 0; background: #1e293b; color: #f8fafc; padding: 10px 14px; border-radius: 6px;
+            font-size: 13px; font-weight: 400; width: 220px; z-index: 10; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); pointer-events: none; line-height: 1.4;
         }
 
         .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -57,6 +49,13 @@
         .badge-neutral { background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
         .badge-info { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
         
+        /* Navigation Buttons */
+        .nav-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+        .btn-nav { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-nav:hover:not(:disabled) { background-color: #e2e8f0; }
+        .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-indicator { font-weight: 600; color: #475569; }
+
         @media (max-width: 600px) { .data-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -100,17 +99,21 @@
                 <div class="data-card"><span class="has-tooltip" data-tip="Looks for Chatbots (Intercom, Zendesk) or CRM forms (HubSpot, Salesforce).">🤖 Sales Automation</span> <span id="res-auto"></span></div>
                 <div class="data-card"><span class="has-tooltip" data-tip="Checks if they are promoting their own iOS/Apple or Android/Google Play apps.">📲 Dedicated Mobile App</span> <span id="res-app"></span></div>
             </div>
+
+            <div class="nav-controls" id="nav-controls" style="display: none;">
+                <button class="btn-nav" id="prevBtn" onclick="navigateResult(-1)">⬅️ Previous</button>
+                <div class="page-indicator" id="page-indicator">Result 1 of 3</div>
+                <button class="btn-nav" id="nextBtn" onclick="navigateResult(1)">Next ➡️</button>
+            </div>
         </div>
     </div>
 
     <script>
-        let globalScanDataArray = []; // Stores all results for bulk export
-        
-        // Motion Graphics Text Array
+        let globalScanDataArray = []; 
+        let currentDisplayIndex = 0; // Tracks which result is currently on screen
         const hackingPhrases = ["Bypassing Cache...", "Analyzing DOM Structure...", "Checking Security Certificates...", "Compiling Metrics...", "Fetching Metadata..."];
         let phraseInterval;
 
-        // Extract Company Name from URL
         function extractCompanyName(url) {
             try {
                 let domain = (new URL(url)).hostname;
@@ -121,13 +124,11 @@
 
         async function startAudit() {
             const rawInput = document.getElementById('websiteUrl').value;
-            // Split by line and remove empty lines
             const urls = rawInput.split('\n').map(u => u.trim()).filter(u => u !== '');
-            
             if(urls.length === 0) { alert("Please enter at least one URL."); return; }
 
-            // UI Setup for Scanning
             globalScanDataArray = [];
+            currentDisplayIndex = 0;
             document.getElementById('scanBtn').disabled = true;
             document.getElementById('results-section').style.display = "none";
             const overlay = document.getElementById('loading-overlay');
@@ -136,15 +137,8 @@
             const progBar = document.getElementById('progress-bar');
             
             overlay.style.display = "flex";
-            
-            // Setup bulk progress bar if multiple
-            if(urls.length > 1) {
-                progContainer.style.display = "block";
-            } else {
-                progContainer.style.display = "none";
-            }
+            if(urls.length > 1) progContainer.style.display = "block"; else progContainer.style.display = "none";
 
-            // Motion Graphics Interval
             let phraseIndex = 0;
             document.getElementById('loading-text').innerText = "Initiating Handshake...";
             phraseInterval = setInterval(() => {
@@ -152,53 +146,51 @@
                 phraseIndex++;
             }, 800);
 
-            // Loop through each URL (The Queue System)
             for(let i = 0; i < urls.length; i++) {
                 subtext.innerText = `Scanning ${i+1} of ${urls.length}: ${urls[i]}`;
                 if(urls.length > 1) progBar.style.width = `${((i)/urls.length)*100}%`;
 
                 try {
                     const response = await fetch("https://digital-gap-analyzer.onrender.com/scan", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: urls[i] })
+                        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: urls[i] })
                     });
-                    
                     const data = await response.json();
                     
                     if(!data.error) {
-                        data.company_name = extractCompanyName(urls[i]); // Add company name to data object
+                        data.company_name = extractCompanyName(urls[i]); 
                         data.original_url = urls[i];
                         globalScanDataArray.push(data);
-                        
-                        // Update the Visual Grid to show the latest scan
-                        updateVisualGrid(data);
-                        document.getElementById('results-section').style.display = "block";
                     }
-                } catch(error) {
-                    console.log("Failed to scan: " + urls[i]);
-                }
+                } catch(error) { console.log("Failed to scan: " + urls[i]); }
             }
 
-            // Cleanup Animation & Finish
             clearInterval(phraseInterval);
             overlay.style.display = "none";
             document.getElementById('scanBtn').disabled = false;
             
             if(globalScanDataArray.length > 0) {
-                if(urls.length > 1) {
+                if(globalScanDataArray.length > 1) {
                     document.getElementById('exportBtn').innerText = `📋 Copy All ${globalScanDataArray.length} to Excel`;
+                    document.getElementById('nav-controls').style.display = "flex";
                 } else {
                     document.getElementById('exportBtn').innerText = `📋 Copy to Excel`;
+                    document.getElementById('nav-controls').style.display = "none";
                 }
+                
+                // Show the very first result once scanning is done
+                showResult(0);
+                document.getElementById('results-section').style.display = "block";
             } else {
                 alert("All scans failed. Ensure your backend is live and URLs are correct.");
-                document.getElementById('results-section').style.display = "none";
             }
         }
 
-        // Populates the beautiful UI cards
-        function updateVisualGrid(data) {
+        // NEW: Function to display a specific result and update navigation buttons
+        function showResult(index) {
+            if (index < 0 || index >= globalScanDataArray.length) return;
+            currentDisplayIndex = index;
+            const data = globalScanDataArray[index];
+
             document.getElementById('company-name-display').innerText = data.company_name;
             document.getElementById('current-url-display').innerText = data.original_url;
             
@@ -207,9 +199,7 @@
                 return condition ? `<span class="badge badge-pass">${passText}</span>` : `<span class="badge badge-fail">${failText}</span>`;
             };
 
-            // Notice we put Load Time in a neutral badge now!
             document.getElementById('res-time').innerHTML = `<span class="badge badge-neutral">${data.load_time_seconds}s</span>`;
-            
             document.getElementById('res-ssl').innerHTML = formatBadge(data.ssl_secure, "Secure", "Vulnerable");
             document.getElementById('res-mobile').innerHTML = formatBadge(data.mobile_ready, "Optimized", "Outdated");
             document.getElementById('res-seo').innerHTML = formatBadge(data.seo_present, "Detected", "Missing");
@@ -219,29 +209,29 @@
             document.getElementById('res-wp').innerHTML = formatBadge(data.is_wordpress, "Detected", "Modern/Custom", true);
             document.getElementById('res-auto').innerHTML = formatBadge(data.has_sales_automation, "Integrated", "Manual");
             document.getElementById('res-app').innerHTML = formatBadge(data.has_mobile_apps, "Deployed", "None");
+
+            // Update Pagination UI
+            document.getElementById('page-indicator').innerText = `Result ${index + 1} of ${globalScanDataArray.length}`;
+            document.getElementById('prevBtn').disabled = (index === 0);
+            document.getElementById('nextBtn').disabled = (index === globalScanDataArray.length - 1);
         }
 
-        // The Bulk Excel Formatting Function
+        // NEW: Function attached to the Next/Prev buttons
+        function navigateResult(direction) {
+            showResult(currentDisplayIndex + direction);
+        }
+
         function copyToExcel() {
             if(globalScanDataArray.length === 0) return;
-            
-            // 1. Create the Header Row
             let tsvContent = "Company Name\tTarget URL\tLoad Time (s)\tSSL Encryption\tMobile Responsive\tSEO Meta Tags\tSocial Media Links\tDirect Email Link\tBusiness Intelligence\tLegacy CMS (WordPress)\tSales Automation\tDedicated Mobile App\n";
             
-            // 2. Loop through every scanned site and create rows
             globalScanDataArray.forEach(data => {
                 const row = [
-                    data.company_name.toUpperCase(),
-                    data.original_url,
-                    data.load_time_seconds,
-                    data.ssl_secure ? "Secure" : "Vulnerable",
-                    data.mobile_ready ? "Optimized" : "Outdated",
-                    data.seo_present ? "Detected" : "Missing",
-                    data.has_socials ? "Connected" : "Isolated",
-                    data.has_contact_email ? "Present" : "Missing",
-                    data.has_business_intel ? "Tracking" : "Blind",
-                    data.is_wordpress ? "Detected" : "Modern/Custom",
-                    data.has_sales_automation ? "Integrated" : "Manual",
+                    data.company_name.toUpperCase(), data.original_url, data.load_time_seconds,
+                    data.ssl_secure ? "Secure" : "Vulnerable", data.mobile_ready ? "Optimized" : "Outdated",
+                    data.seo_present ? "Detected" : "Missing", data.has_socials ? "Connected" : "Isolated",
+                    data.has_contact_email ? "Present" : "Missing", data.has_business_intel ? "Tracking" : "Blind",
+                    data.is_wordpress ? "Detected" : "Modern/Custom", data.has_sales_automation ? "Integrated" : "Manual",
                     data.has_mobile_apps ? "Deployed" : "None"
                 ];
                 tsvContent += row.join("\t") + "\n";
@@ -249,9 +239,7 @@
             
             navigator.clipboard.writeText(tsvContent).then(() => {
                 alert(`✅ Successfully copied ${globalScanDataArray.length} records! Open Excel and press Ctrl+V.`);
-            }).catch(err => {
-                alert("Failed to copy. Please try again.");
-            });
+            }).catch(err => { alert("Failed to copy. Please try again."); });
         }
     </script>
 </body>
