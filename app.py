@@ -30,32 +30,30 @@ def scan_website():
         seo_passed = False
         mobile_ready = "meta name=\"viewport\"" in html_content 
         
-        # 2. THE GOOGLE API (Bulletproof Version)
+        # 2. THE GOOGLE API (Optimized for Free Tier)
         if GOOGLE_API_KEY != "YOUR_API_KEY_HERE":
-            # We explicitly ask Google for MOBILE data (strategy=mobile) so it always gives us the viewport check
-            google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance&strategy=mobile"
+            # We added the '&fields=' parameter to shrink the data size by 99%
+            fields = "lighthouseResult(audits(interactive,viewport),categories/seo/score)"
+            google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance&strategy=mobile&fields={fields}"
             
             try:
-                # We give Render a massive 35-second window to wait for Google
-                google_res = requests.get(google_api_url, timeout=35).json()
+                # Increased timeout to 50 seconds for heavy Indian corporate sites
+                google_res = requests.get(google_api_url, timeout=50).json()
                 
-                # Safely extract data without crashing
                 if 'lighthouseResult' in google_res:
                     lh = google_res['lighthouseResult']
-                    audits = lh.get('audits', {})
-                    categories = lh.get('categories', {})
                     
-                    if 'interactive' in audits:
-                        load_time = round(audits['interactive'].get('numericValue', 0) / 1000, 2)
-                        
-                    if 'seo' in categories:
-                        seo_passed = categories['seo'].get('score', 0) >= 0.8
-                        
-                    if 'viewport' in audits:
-                        mobile_ready = audits['viewport'].get('score', 0) == 1
+                    if 'audits' in lh:
+                        if 'interactive' in lh['audits']:
+                            load_time = round(lh['audits']['interactive'].get('numericValue', 0) / 1000, 2)
+                        if 'viewport' in lh['audits']:
+                            mobile_ready = lh['audits']['viewport'].get('score', 0) == 1
+                            
+                    if 'categories' in lh and 'seo' in lh['categories']:
+                        seo_passed = lh['categories']['seo'].get('score', 0) >= 0.8
                         
             except Exception as e:
-                print(f"Google API Error: {e}") # This secretly logs the error for us developers
+                print(f"Google API Error: {e}")
 
         # 3. COMPILE THE HYBRID DATA
         result = {
