@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- PASTE YOUR GOOGLE API KEY INSIDE THE QUOTES BELOW ---
-GOOGLE_API_KEY = "AIzaSyD74FeGZVHd_Bdjd6zNWZvQx3Hw3NP5Zrg"
+GOOGLE_API_KEY = "YOUR_API_KEY_HERE"
 
 @app.route('/scan', methods=['POST'])
 def scan_website():
@@ -25,32 +25,38 @@ def scan_website():
         response = requests.get(url, headers=headers, timeout=15)
         html_content = response.text.lower()
         
-        # 2. THE GOOGLE API (For 100% Accurate Performance & SEO)
-        google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance"
-        
         # Default fallback values
         load_time = 0.0
         seo_passed = False
         mobile_ready = "meta name=\"viewport\"" in html_content 
         
+        # 2. THE GOOGLE API (Bulletproof Version)
         if GOOGLE_API_KEY != "YOUR_API_KEY_HERE":
+            # We explicitly ask Google for MOBILE data (strategy=mobile) so it always gives us the viewport check
+            google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance&strategy=mobile"
+            
             try:
-                # Ask Google for the facts
-                google_res = requests.get(google_api_url, timeout=25).json()
+                # We give Render a massive 35-second window to wait for Google
+                google_res = requests.get(google_api_url, timeout=35).json()
+                
+                # Safely extract data without crashing
                 if 'lighthouseResult' in google_res:
                     lh = google_res['lighthouseResult']
+                    audits = lh.get('audits', {})
+                    categories = lh.get('categories', {})
                     
-                    # Get exact Time to Interactive (in seconds)
-                    load_time = round(lh['audits']['interactive']['numericValue'] / 1000, 2)
-                    
-                    # Get Google's official SEO score (0.8 or higher is passing)
-                    seo_passed = lh['categories']['seo']['score'] >= 0.8
-                    
-                    # Google's official Mobile Viewport check
-                    mobile_ready = lh['audits']['viewport']['score'] == 1
+                    if 'interactive' in audits:
+                        load_time = round(audits['interactive'].get('numericValue', 0) / 1000, 2)
+                        
+                    if 'seo' in categories:
+                        seo_passed = categories['seo'].get('score', 0) >= 0.8
+                        
+                    if 'viewport' in audits:
+                        mobile_ready = audits['viewport'].get('score', 0) == 1
+                        
             except Exception as e:
-                print("Google API timeout, using fallbacks.")
-        
+                print(f"Google API Error: {e}") # This secretly logs the error for us developers
+
         # 3. COMPILE THE HYBRID DATA
         result = {
             "url": url,
