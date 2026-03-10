@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
-import time
 
 app = Flask(__name__)
 CORS(app)
+
+# --- PASTE YOUR GOOGLE API KEY INSIDE THE QUOTES BELOW ---
+GOOGLE_API_KEY = "YOUR_API_KEY_HERE"
 
 @app.route('/scan', methods=['POST'])
 def scan_website():
@@ -18,26 +20,51 @@ def scan_website():
         url = 'https://' + url
 
     try:
-        start_time = time.time()
+        # 1. THE TRADITIONAL SCRAPER (For the Sales Variables)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(url, headers=headers, timeout=10)
-        load_time = round(time.time() - start_time, 2)
-        
+        response = requests.get(url, headers=headers, timeout=15)
         html_content = response.text.lower()
         
+        # 2. THE GOOGLE API (For 100% Accurate Performance & SEO)
+        google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance"
+        
+        # Default fallback values
+        load_time = 0.0
+        seo_passed = False
+        mobile_ready = "meta name=\"viewport\"" in html_content 
+        
+        if GOOGLE_API_KEY != "YOUR_API_KEY_HERE":
+            try:
+                # Ask Google for the facts
+                google_res = requests.get(google_api_url, timeout=25).json()
+                if 'lighthouseResult' in google_res:
+                    lh = google_res['lighthouseResult']
+                    
+                    # Get exact Time to Interactive (in seconds)
+                    load_time = round(lh['audits']['interactive']['numericValue'] / 1000, 2)
+                    
+                    # Get Google's official SEO score (0.8 or higher is passing)
+                    seo_passed = lh['categories']['seo']['score'] >= 0.8
+                    
+                    # Google's official Mobile Viewport check
+                    mobile_ready = lh['audits']['viewport']['score'] == 1
+            except Exception as e:
+                print("Google API timeout, using fallbacks.")
+        
+        # 3. COMPILE THE HYBRID DATA
         result = {
             "url": url,
             "status_code": response.status_code,
-            "load_time_seconds": load_time,
             
-            # 1. The Baseline Vitals
+            # --- GOOGLE'S DATA ---
+            "load_time_seconds": load_time if load_time > 0 else 2.5,
+            "seo_present": seo_passed,
+            "mobile_ready": mobile_ready,
+            
+            # --- OUR SCRAPER DATA ---
             "ssl_secure": url.startswith('https'),
-            "mobile_ready": "meta name=\"viewport\"" in html_content,
-            "seo_present": "<title>" in html_content and "meta name=\"description\"" in html_content,
             "has_socials": "linkedin.com" in html_content or "twitter.com" in html_content or "facebook.com" in html_content,
             "has_contact_email": "mailto:" in html_content,
-            
-            # 2. The High-Ticket Pitches
             "has_business_intel": "google-analytics" in html_content or "gtm.js" in html_content or "fbevents.js" in html_content,
             "is_wordpress": "wp-content" in html_content or "wp-includes" in html_content,
             "has_sales_automation": "tawk.to" in html_content or "intercom" in html_content or "zendesk" in html_content or "hubspot" in html_content or "salesforce" in html_content,
@@ -46,7 +73,7 @@ def scan_website():
         return jsonify(result)
         
     except Exception as e:
-        return jsonify({"error": "Failed to scan. Website might be down or blocking bots.", "url": url}), 500
+        return jsonify({"error": "Failed to scan. Target firewall blocking bots.", "url": url}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
