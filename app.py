@@ -13,60 +13,56 @@ def scan_website():
     data = request.json
     url = data.get('url')
     
-    if not url:
-        return jsonify({"error": "No URL provided"}), 400
-        
-    if not url.startswith('http'):
-        url = 'https://' + url
+    if not url: return jsonify({"error": "No URL provided"}), 400
+    if not url.startswith('http'): url = 'https://' + url
 
     html_content = ""
     status_code = 0
-    load_time = 0.0
     seo_passed = False
     mobile_ready = False
+    
+    # DIAGNOSTIC BASELINE
+    load_time = 555.55
 
     # 1. THE TRADITIONAL SCRAPER
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(url, headers=headers, timeout=15)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, timeout=10)
         status_code = response.status_code
         html_content = response.text.lower()
-        mobile_ready = "meta name=\"viewport\"" in html_content 
-    except Exception as e:
-        print(f"Scraper blocked for {url}. Moving to Google API.")
+    except:
+        pass # Ignore scraper errors for this diagnostic test
 
-    # 2. THE GOOGLE API
-    if GOOGLE_API_KEY != "YOUR_API_KEY_HERE":
-        # I slightly simplified the fields filter just in case Google was rejecting our formatting
-        fields = "lighthouseResult(audits(interactive,viewport),categories)"
-        google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance&strategy=mobile&fields={fields}"
+    # 2. THE DIAGNOSTIC GOOGLE API
+    if GOOGLE_API_KEY == "YOUR_API_KEY_HERE":
+        load_time = 777.77 # SECRET CODE: Key is missing or unreadable
+    else:
+        # I removed the fields filter temporarily just in case Google was rejecting the format
+        google_api_url = f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url={url}&key={GOOGLE_API_KEY}&category=seo&category=performance&strategy=mobile"
         
         try:
-            g_response = requests.get(google_api_url, timeout=50)
-            google_res = g_response.json()
+            g_res = requests.get(google_api_url, timeout=40)
             
-            if 'lighthouseResult' in google_res:
-                lh = google_res['lighthouseResult']
-                if 'audits' in lh:
-                    if 'interactive' in lh['audits']:
-                        load_time = round(lh['audits']['interactive'].get('numericValue', 0) / 1000, 2)
-                    if 'viewport' in lh['audits']:
-                        mobile_ready = lh['audits']['viewport'].get('score', 0) == 1
-                if 'categories' in lh and 'seo' in lh['categories']:
-                    seo_passed = lh['categories']['seo'].get('score', 0) >= 0.8
+            if g_res.status_code != 200:
+                # SECRET CODE: Google rejected us. Print their exact HTTP error code to the screen!
+                load_time = float(g_res.status_code) 
             else:
-                # THIS IS THE FIX. If Google rejects us, print the exact reason!
-                print(f"GOOGLE REJECTED US. Status Code: {g_response.status_code}")
-                print(f"Google's Message: {google_res}")
-                
+                json_data = g_res.json()
+                if 'lighthouseResult' in json_data:
+                    lh = json_data['lighthouseResult']
+                    load_time = round(lh['audits']['interactive'].get('numericValue', 0) / 1000, 2)
+                    seo_passed = lh['categories']['seo'].get('score', 0) >= 0.8
+                    mobile_ready = lh['audits']['viewport'].get('score', 0) == 1
+                else:
+                    load_time = 888.88 # SECRET CODE: Data format changed
         except Exception as e:
-            print(f"Google API Crash: {e}")
+            load_time = 999.99 # SECRET CODE: Server crashed trying to connect
 
     # 3. COMPILE DATA
     result = {
         "url": url,
         "status_code": status_code,
-        "load_time_seconds": load_time if load_time > 0 else 2.5,
+        "load_time_seconds": load_time,
         "seo_present": seo_passed,
         "mobile_ready": mobile_ready,
         "ssl_secure": url.startswith('https'),
@@ -74,8 +70,8 @@ def scan_website():
         "has_contact_email": "mailto:" in html_content,
         "has_business_intel": "google-analytics" in html_content or "gtm.js" in html_content or "fbevents.js" in html_content,
         "is_wordpress": "wp-content" in html_content or "wp-includes" in html_content,
-        "has_sales_automation": "tawk.to" in html_content or "intercom" in html_content or "zendesk" in html_content or "hubspot" in html_content or "salesforce" in html_content,
-        "has_mobile_apps": "play.google.com/store/apps" in html_content or "apps.apple.com" in html_content
+        "has_sales_automation": "tawk.to" in html_content or "intercom" in html_content or "zendesk" in html_content,
+        "has_mobile_apps": "play.google.com" in html_content or "apps.apple.com" in html_content
     }
     return jsonify(result)
 
