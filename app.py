@@ -6,7 +6,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- PASTE YOUR GOOGLE API KEY INSIDE THE QUOTES BELOW ---
-GOOGLE_API_KEY = "YOUR_API_KEY_HERE"
+GOOGLE_API_KEY = "AIzaSyD74FeGZVHd_Bdjd6zNWZvQx3Hw3NP5Zrg"
 
 @app.route('/scan', methods=['POST'])
 def scan_website():
